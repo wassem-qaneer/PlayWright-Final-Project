@@ -29,6 +29,7 @@ export default defineConfig({
   use: {
     baseURL: process.env.BASE_URL,
     trace: "on-first-retry",
+    viewport: { width: 1600, height: 900 },
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
   },
