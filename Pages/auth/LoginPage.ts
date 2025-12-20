@@ -13,12 +13,10 @@ export class LoginPage {
   }
 
   async open() {
-    await this.page.goto(env.baseURL, { waitUntil: "networkidle" });
-    const signIn = this.page.locator('[data-test="nav-sign-in"]');
-    await expect(signIn).toBeVisible({ timeout: 15000 });
-    await signIn.click();
-
-    await this.page.waitForURL("**/auth/login");
+    await this.page.goto(`${env.baseURL}/auth/login`, {
+      waitUntil: "domcontentloaded",
+    });
+    await this.emailInput.waitFor({ state: "visible", timeout: 15000 });
   }
 
   async login(email: string, password: string) {
