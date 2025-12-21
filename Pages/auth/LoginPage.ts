@@ -22,7 +22,18 @@ export class LoginPage {
   async login(email: string, password: string) {
     await this.emailInput.fill(email);
     await this.passwordInput.fill(password);
-    await this.loginButton.click();
+    await this.passwordInput.press("Enter");
+
+    await Promise.race([
+      this.page.waitForURL(/\/account/i, { timeout: 15000 }).catch(() => {}),
+      this.page
+        .waitForURL(/\/admin\/dashboard/i, { timeout: 15000 })
+        .catch(() => {}),
+      this.page
+        .locator(".alert.alert-danger")
+        .waitFor({ state: "visible", timeout: 15000 })
+        .catch(() => {}),
+    ]);
   }
 
   async assertCustomerLoggedIn() {
