@@ -17,7 +17,9 @@ test.describe("Customer Login", () => {
     await login.login("wrong@wrong.com", env.customerPassword);
     const errorMessage = page.locator(".alert.alert-danger");
     await expect(errorMessage).toBeVisible();
-    await expect(errorMessage).toContainText(/invalid/i);
+    await expect(errorMessage).toContainText(
+      /invalid email or password|login failed/i
+    );
   });
 
   test("Login InValid password into customer Account", async ({ page }) => {
@@ -26,7 +28,9 @@ test.describe("Customer Login", () => {
     await login.login(env.customerEmail, "wrongPassword");
     const errorMessage = page.locator(".alert.alert-danger");
     await expect(errorMessage).toBeVisible();
-    await expect(errorMessage).toContainText(/invalid/i);
+    await expect(errorMessage).toContainText(
+      /invalid email or password|login failed/i
+    );
   });
 });
 
@@ -44,7 +48,9 @@ test.describe("Admin Login", () => {
     await login.login(env.adminEmail, "wrongPassword");
     const errorMessage = page.locator(".alert.alert-danger");
     await expect(errorMessage).toBeVisible();
-    await expect(errorMessage).toContainText(/invalid/i);
+    await expect(errorMessage).toContainText(
+      /invalid email or password|login failed/i
+    );
   });
   test("Login InValid email into Admin Account", async ({ page }) => {
     const login = new LoginPage(page);
@@ -52,6 +58,8 @@ test.describe("Admin Login", () => {
     await login.login("wrong@wrong.com", env.adminPassword);
     const errorMessage = page.locator(".alert.alert-danger");
     await expect(errorMessage).toBeVisible();
-    await expect(errorMessage).toContainText(/invalid/i);
+    await expect(errorMessage).toContainText(
+      /invalid email or password|login failed/i
+    );
   });
 });

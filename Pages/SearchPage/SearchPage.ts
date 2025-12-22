@@ -1,10 +1,11 @@
-import { Page, Locator } from "@playwright/test";
+import { Page, Locator, expect } from "@playwright/test";
 import { env } from "../../utils/env";
 
 export class SearchPage {
   // Search
   private searchInput: Locator;
   private searchButton: Locator;
+  private noResultsMessage: Locator;
   //  Filters
   private ecoFriendly: Locator;
   // Sorting
@@ -15,6 +16,7 @@ export class SearchPage {
     this.searchButton = page.locator('[data-test="search-submit"]');
     this.sortDropdown = page.locator('[data-test="sort"]');
     this.ecoFriendly = page.locator('[data-test="eco-friendly-filter"]');
+    this.noResultsMessage = page.locator("div[data-test='no-results']");
   }
   async open() {
     await this.page.goto(env.baseURL, { waitUntil: "domcontentloaded" });
@@ -24,7 +26,10 @@ export class SearchPage {
     await this.searchInput.scrollIntoViewIfNeeded();
     await this.searchInput.waitFor({ state: "visible", timeout: 15000 });
     await this.searchInput.fill(query);
-    await this.searchInput.press("Enter");
+    await this.searchButton.scrollIntoViewIfNeeded();
+    await this.searchButton.waitFor({ state: "visible", timeout: 15000 });
+    await this.searchButton.click();
+    await this.page.waitForLoadState("networkidle").catch(() => {});
   }
   async openFilters() {
     const filtersHeader = this.page.getByRole("heading", { name: "Filters" });
@@ -67,5 +72,10 @@ export class SearchPage {
     const x = box.x + box.width * (percentFromLeft / 100);
     const y = box.y + box.height / 2;
     await this.page.mouse.click(x, y);
+  }
+
+  async assertNoResultsVisible() {
+    const products = this.page.locator(".card");
+    await expect(products).toHaveCount(0, { timeout: 15000 });
   }
 }
