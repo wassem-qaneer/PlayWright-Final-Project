@@ -2,102 +2,101 @@ import { expect, Locator, Page } from "@playwright/test";
 import { env } from "../../utils/env";
 
 export class ProductPage {
-  private productsGrid: Locator;
   private productCards: Locator;
 
   private addToCartBtn: Locator;
   private cartBadge: Locator;
 
   constructor(private page: Page) {
+    this.productCards = page.locator(
+      [
+        '[data-test="product"] a[href*="/product/"]',
+        '[data-test="product-card"] a[href*="/product/"]',
+        'a[href*="/product/"]:visible',
+        '.card:has(a[href*="/product/"]) a[href*="/product/"]',
+      ].join(", ")
+    );
 
-    this.productsGrid = page.locator('[data-test="product-grid"], .products, .container');
-    this.productCards = page.locator('[data-test="product"], .card');
-    
-    this.addToCartBtn = page.locator('[data-test="add-to-cart"], button:has-text("Add to cart")');
+    this.addToCartBtn = page.locator(
+      [
+        '[data-test="add-to-cart"]',
+        'button:has-text("Add to cart")',
+        'button:has-text("Add To Cart")',
+      ].join(", ")
+    );
 
-    
+   
     this.cartBadge = page.locator(
-      '[data-test="cart-quantity"], [data-test="cart-count"], .cart-quantity, .badge'
+      [
+        '[data-test="cart-quantity"]',
+        '[data-test="cart-count"]',
+        ".cart-quantity",
+        "header .badge",
+      ].join(", ")
     );
   }
 
   
-  async openShop() {
-    await this.page.goto(`${env.baseURL}/#`, { waitUntil: "domcontentloaded" });
-    const url = this.page.url();
-    if (!/products|#|\/$/i.test(url)) {
-      await this.page.goto(`${env.baseURL}/products`, { waitUntil: "domcontentloaded" }).catch(() => {});
-    }
-  }
-
-  
   async openProducts() {
-    await this.page.goto(`${env.baseURL}/products`, { waitUntil: "domcontentloaded" });
-   
-    await this.page.waitForLoadState("networkidle").catch(() => {});
+    await this.page.goto(`${env.baseURL}/`, { waitUntil: "domcontentloaded" });
+    await this.page.waitForLoadState("domcontentloaded").catch(() => {});
+    await this.page.waitForTimeout(400);
+
+
+    if ((await this.productCards.count()) === 0) {
+      await this.page.goto(`${env.baseURL}/products`, {
+        waitUntil: "domcontentloaded",
+      });
+      await this.page.waitForLoadState("domcontentloaded").catch(() => {});
+      await this.page.waitForTimeout(400);
+    }
+
+    await expect(this.productCards.first()).toBeVisible({ timeout: 20000 });
   }
 
   
   async openProductByIndex(index = 0) {
-    
+    await this.openProducts();
+
     await expect(this.productCards.first()).toBeVisible({ timeout: 20000 });
 
-    const card = this.productCards.nth(index);
-    await card.scrollIntoViewIfNeeded();
+    const link = this.productCards.nth(index);
+    await link.scrollIntoViewIfNeeded();
+    await link.click();
 
-    
-    const link = card.locator("a").first();
-    if (await link.count()) {
-      await link.click();
-    } else {
-      await card.click();
-    }
-
-   
-    await this.page.waitForLoadState("domcontentloaded");
-    await expect(this.addToCartBtn).toBeVisible({ timeout: 20000 });
-  }
-
-  
-  async openProductByName(name: string) {
-    const card = this.productCards.filter({ hasText: name }).first();
-    await expect(card).toBeVisible({ timeout: 20000 });
-
-    const link = card.locator("a").first();
-    if (await link.count()) {
-      await link.click();
-    } else {
-      await card.click();
-    }
-
-    await this.page.waitForLoadState("domcontentloaded");
-    await expect(this.addToCartBtn).toBeVisible({ timeout: 20000 });
+    await this.page.waitForLoadState("domcontentloaded").catch(() => {});
+    await expect(this.addToCartBtn.first()).toBeVisible({ timeout: 20000 });
   }
 
   async addToCart() {
-    await expect(this.addToCartBtn).toBeVisible({ timeout: 20000 });
-    await this.addToCartBtn.click();
+    const btn = this.addToCartBtn.first();
+    await expect(btn).toBeVisible({ timeout: 20000 });
+    await expect(btn).toBeEnabled({ timeout: 20000 });
 
-    
-    await this.page.waitForTimeout(300);
+    const before = await this.getCartCount();
+    await btn.click();
+    await expect
+      .poll(async () => await this.getCartCount(), { timeout: 20000 })
+      .toBeGreaterThanOrEqual(before + 1);
   }
 
- 
-  async getCartCount(): Promise<number | null> {
-    if ((await this.cartBadge.count()) === 0) return null;
-    const txt = (await this.cartBadge.first().innerText().catch(() => "")).trim();
+  async getCartCount(): Promise<number> {
+    if ((await this.cartBadge.count()) === 0) return 0;
+    const txt = (await this.cartBadge.first().innerText().catch(() => "0")).trim();
     const n = Number(txt.replace(/[^\d]/g, ""));
-    return Number.isFinite(n) ? n : null;
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  async expectCartCountAtLeast(n: number) {
+    await expect
+      .poll(async () => await this.getCartCount(), { timeout: 20000 })
+      .toBeGreaterThanOrEqual(n);
+  }
+
+  async openCart() {
+    await this.page.goto(`${env.baseURL}/cart`, { waitUntil: "domcontentloaded" });
+    await this.page.waitForLoadState("domcontentloaded").catch(() => {});
   }
 
   
-  async openCart() {
-    const cartLink = this.page.locator(
-      '[data-test="nav-cart"], a[href*="/cart"], a:has-text("Cart"), button:has-text("Cart")'
-    ).first();
-
-    await expect(cartLink).toBeVisible({ timeout: 20000 });
-    await cartLink.click();
-    await this.page.waitForLoadState("domcontentloaded");
-  }
 }
