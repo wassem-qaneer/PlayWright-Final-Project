@@ -7,7 +7,6 @@ export class SearchPage {
   private searchButton: Locator;
   private noResultsMessage: Locator;
   //  Filters
-  private ecoFriendly: Locator;
   // Sorting
   private sortDropdown: Locator;
 
@@ -15,7 +14,6 @@ export class SearchPage {
     this.searchInput = page.locator('[data-test="search-query"]');
     this.searchButton = page.locator('[data-test="search-submit"]');
     this.sortDropdown = page.locator('[data-test="sort"]');
-    this.ecoFriendly = page.locator('[data-test="eco-friendly-filter"]');
     this.noResultsMessage = page.locator("div[data-test='no-results']");
   }
   async open() {
@@ -48,11 +46,6 @@ export class SearchPage {
     await this.sortDropdown.selectOption(value);
   }
 
-  // Eco-friendly filter
-  async setEcoFriendly(enabled: boolean = true) {
-    enabled ? await this.ecoFriendly.check() : await this.ecoFriendly.uncheck();
-  }
-
   // Category filter
   async filterByCategory(categoryName: string) {
     await this.page.getByLabel(categoryName, { exact: true }).check();
@@ -65,17 +58,31 @@ export class SearchPage {
 
   // Price range
   async setMaxPriceByPercent(percentFromLeft: number) {
-    const slider = this.page.getByRole("slider", { name: "ngx-slider-max" });
+    const slider = this.page.getByRole("slider").last();
     const box = await slider.boundingBox();
     if (!box) throw new Error("Max price slider not found");
-
-    const x = box.x + box.width * (percentFromLeft / 100);
-    const y = box.y + box.height / 2;
-    await this.page.mouse.click(x, y);
+    const startX = box.x + box.width - 2;
+    const startY = box.y + box.height / 2;
+    const endX = box.x + box.width * (percentFromLeft / 100);
+    const endY = startY;
+    await this.page.mouse.move(startX, startY);
+    await this.page.mouse.down();
+    await this.page.mouse.move(endX, endY, { steps: 12 });
+    await this.page.mouse.up();
   }
 
   async assertNoResultsVisible() {
     const products = this.page.locator(".card");
     await expect(products).toHaveCount(0, { timeout: 15000 });
+  }
+
+  async filterByMainCategory(name: "Hand Tools" | "Power Tools" | "Other") {
+    const checkbox = this.page.getByLabel(name, { exact: true });
+    await checkbox.check();
+  }
+
+  async filterBySubCategory(name: string) {
+    const checkbox = this.page.getByLabel(name, { exact: true });
+    await checkbox.check();
   }
 }

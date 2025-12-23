@@ -2,64 +2,76 @@ import { expect, test } from "@playwright/test";
 import { env } from "../../utils/env";
 import { LoginPage } from "../../Pages/auth/LoginPage";
 
-test.describe("Customer Login", () => {
-  test("Login Valid into customer Account", async ({ page }) => {
-    const loginPage = new LoginPage(page);
+type Role = "customer" | "admin";
 
-    await loginPage.open();
-    await loginPage.login(env.customerEmail, env.customerPassword);
-    await loginPage.assertCustomerLoggedIn();
-  });
+const validUsers = [
+  {
+    role: "customer" as Role,
+    email: env.customerEmail,
+    password: env.customerPassword,
+    assertUrl: /\/account/i,
+  },
+  {
+    role: "admin" as Role,
+    email: env.adminEmail,
+    password: env.adminPassword,
+    assertUrl: /\/admin\/dashboard/i,
+  },
+];
 
-  test("Login InValid email into customer Account", async ({ page }) => {
-    const login = new LoginPage(page);
-    await login.open();
-    await login.login("wrong@wrong.com", env.customerPassword);
-    const errorMessage = page.locator(".alert.alert-danger");
-    await expect(errorMessage).toBeVisible();
-    await expect(errorMessage).toContainText(
-      /invalid email or password|login failed/i
-    );
-  });
+const invalidLoginScenarios = [
+  {
+    name: "Customer - invalid password",
+    role: "customer",
+    email: env.customerEmail,
+    password: "wrongPassword",
+  },
+  {
+    name: "Admin - invalid password",
+    role: "admin",
+    email: env.adminEmail,
+    password: "wrongPassword",
+  },
+  {
+    name: "Customer - invalid email",
+    role: "customer",
+    email: "wrong-customer@example.com",
+    password: env.customerPassword,
+  },
+  {
+    name: "Admin - invalid email",
+    role: "admin",
+    email: "wrong-admin@example.com",
+    password: env.adminPassword,
+  },
+];
 
-  test("Login InValid password into customer Account", async ({ page }) => {
-    const login = new LoginPage(page);
-    await login.open();
-    await login.login(env.customerEmail, "wrongPassword");
-    const errorMessage = page.locator(".alert.alert-danger");
-    await expect(errorMessage).toBeVisible();
-    await expect(errorMessage).toContainText(
-      /invalid email or password|login failed/i
-    );
-  });
+test.describe("Login - Valid (Parameterized from .env)", () => {
+  for (const u of validUsers) {
+    test(`Valid login as ${u.role}`, async ({ page }) => {
+      const loginPage = new LoginPage(page);
+
+      await loginPage.open();
+      await loginPage.login(u.email, u.password);
+
+      await expect(page).toHaveURL(u.assertUrl);
+    });
+  }
 });
 
-test.describe("Admin Login", () => {
-  test("Login Valid into Admin Account", async ({ page }) => {
-    const loginPage = new LoginPage(page);
+test.describe("Login - Invalid (Parameterized Scenarios)", () => {
+  for (const s of invalidLoginScenarios) {
+    test(s.name, async ({ page }) => {
+      const loginPage = new LoginPage(page);
 
-    await loginPage.open();
-    await loginPage.login(env.adminEmail, env.adminPassword);
-    await loginPage.assertAdminLoggedIn();
-  });
-  test("Login InValid password into Admin Account", async ({ page }) => {
-    const login = new LoginPage(page);
-    await login.open();
-    await login.login(env.adminEmail, "wrongPassword");
-    const errorMessage = page.locator(".alert.alert-danger");
-    await expect(errorMessage).toBeVisible();
-    await expect(errorMessage).toContainText(
-      /invalid email or password|login failed/i
-    );
-  });
-  test("Login InValid email into Admin Account", async ({ page }) => {
-    const login = new LoginPage(page);
-    await login.open();
-    await login.login("wrong@wrong.com", env.adminPassword);
-    const errorMessage = page.locator(".alert.alert-danger");
-    await expect(errorMessage).toBeVisible();
-    await expect(errorMessage).toContainText(
-      /invalid email or password|login failed/i
-    );
-  });
+      await loginPage.open();
+      await loginPage.login(s.email, s.password);
+
+      const errorMessage = page.locator(".alert.alert-danger");
+      await expect(errorMessage).toBeVisible();
+      await expect(errorMessage).toContainText(
+        /invalid email or password|login failed/i
+      );
+    });
+  }
 });

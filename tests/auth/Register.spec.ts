@@ -41,7 +41,12 @@ test.describe("Register", () => {
     await expect(page.locator(".alert.alert-danger").first()).toBeVisible();
   });
 
-  const invalidEmails = ["invalid-email", "qais@", "@example.com", "qais.example.com"];
+  const invalidEmails = [
+    "invalid-email",
+    "qais@",
+    "@example.com",
+    "qais.example.com",
+  ];
 
   for (const email of invalidEmails) {
     test(`Invalid email format: ${email}`, async ({ page }) => {
